@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/url"
-	"regexp"
 	"sort"
 	"strings"
 )
@@ -34,8 +33,12 @@ func normalizeURL(inputURL string) (outputURL string, err error) {
 
 	//remove dot-segments
 	urlPath := urlStruct.Path
-	re := regexp.MustCompile(`/(\.+)`)
-	urlPath = re.ReplaceAllString(urlPath, "")
+
+	urlSplit := strings.Split(urlPath, "/../")
+	urlPath = strings.Join(urlSplit, "/")
+
+	urlSplit = strings.Split(urlPath, "/./")
+	urlPath = strings.Join(urlSplit, "/")
 
 	//remove trailing slash
 	urlPath = strings.TrimSuffix(urlPath, "/")

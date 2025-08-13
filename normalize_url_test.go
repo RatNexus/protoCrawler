@@ -29,9 +29,9 @@ func TestNormalizeURL(t *testing.T) {
 			expected: "example.com:0451/path",
 		},
 		{
-			name:     "remove dot-segments",
-			inputURL: "https://example.com/a/./b/../c/...",
-			expected: "example.com/a/b/c",
+			name:     "remove dot-segments of less than three",
+			inputURL: "https://example.com/a/./b/../.../c/./",
+			expected: "example.com/a/b/.../c",
 		},
 		{
 			name:     "remove trailing slash",
