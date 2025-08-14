@@ -54,13 +54,18 @@ func TestNormalizeURL(t *testing.T) {
 			expected: "example.com",
 		},
 		{
+			name:     "multiple slashes",
+			inputURL: "http://example.com///thing//andanother",
+			expected: "example.com/thing/andanother",
+		},
+		{
 			name:     "everywhere all at once",
-			inputURL: "https://Example.cOm:443/./Folder/./Index.html?z=2&c=1#section",
+			inputURL: "https://Example.cOm:443/./Folder/.///Index.html?z=2&c=1#section",
 			expected: "example.com/folder?c=1&z=2",
 		},
 		{
 			name:     "everywhere all at once 2",
-			inputURL: "http://Example.cOm:420/./FOLDER/./Index.html?e=2&d=1&e=1#suction/",
+			inputURL: "http://Example.cOm:420///./FOLDER/./Index.html?e=2&d=1&e=1#suction/",
 			expected: "example.com:420/folder?d=1&e=1&e=2",
 		},
 	}

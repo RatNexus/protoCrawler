@@ -20,8 +20,9 @@ func removeDuplicates(input []string) []string {
 	return result
 }
 
-// use a map instead of string list
+// use a map instead of string list ?
 func extractURLsFromNode(node *html.Node, rawBaseURL string, urls *[]string) {
+	rawBaseURL = strings.TrimRight(rawBaseURL, "/")
 
 	if node.Type == html.ElementNode && node.Data == "a" {
 		for _, a := range node.Attr {
@@ -49,11 +50,11 @@ func extractURLsFromNode(node *html.Node, rawBaseURL string, urls *[]string) {
 	}
 }
 
-func getURLsFromHTML(htmlBody, rawBaseURL string) (gotURLs []string, err error) {
+func getURLsFromHTML(htmlBody, baseURL string) (gotURLs []string, err error) {
 	htmlReader := strings.NewReader(htmlBody)
 	rootNode, err := html.Parse(htmlReader)
 
-	extractURLsFromNode(rootNode, rawBaseURL, &gotURLs)
+	extractURLsFromNode(rootNode, baseURL, &gotURLs)
 	gotURLs = removeDuplicates(gotURLs)
 
 	return gotURLs, err
