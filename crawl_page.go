@@ -17,6 +17,23 @@ func logError(message, rawCurrentURL string, err error) {
 	log.Printf(" - error  : \"%s\" :ERROR: %s%s\n", rawCurrentURL, message, err)
 }
 
+func (cfg config) logReport(pages map[string]int, baseURL string) {
+	log.Println("=============================")
+	log.Printf("  REPORT for %s\n", cfg.baseURL)
+	log.Println("=============================")
+
+	cfg.mu.Lock() // log.Print is slower than making a map copy
+	for url, n := range cfg.pages {
+		pages[url] = n
+	}
+	cfg.mu.Unlock()
+
+	// thus no lock and direct use of cfg.pages here
+	for url, n := range pages {
+		log.Printf("Found %d internal links to %s\n", n, url)
+	}
+}
+
 func (cfg *config) crawlPage(rawCurrentURL string) {
 	var currentDepth uint // == 0 because go i awesome
 	var pageCount int32
@@ -55,20 +72,8 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		log.Print("\n----------\n\n")
 	}
 
-	// Todo: this should be a separate function
 	if cfg.lo.doLogging && cfg.lo.doSummary {
-		log.Println("Contents of the pages map:")
-		cfg.mu.Lock() // log.Print is slower than making a map copy
-		pages := make(map[string]int)
-		for url, n := range cfg.pages {
-			pages[url] = n
-		}
-		cfg.mu.Unlock()
-
-		// thus no lock and direct use of cfg.pages here
-		for url, n := range pages {
-			log.Printf("%s ||| N: %d\n", url, n)
-		}
+		cfg.logReport(cfg.pages, cfg.baseURL.String())
 	}
 
 }

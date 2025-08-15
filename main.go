@@ -139,7 +139,7 @@ func main() {
 	cfg.lo.logToFile = false
 	cfg.lo.logToScreen = true
 	cfg.concurrencyControl = make(chan struct{}, maxGoInt)
-	cfg.maxDepth = 0
+	cfg.maxDepth = 2
 	cfg.maxPages = maxPgInt32
 
 	cfg.lo.doDepthAbyss = false
