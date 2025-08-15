@@ -5,27 +5,29 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 )
 
 type loggingOptions struct {
-	doLogging   bool
-	doStart     bool
-	doEnd       bool
-	doSummary   bool
-	doAbyss     bool
-	doDepth     bool
-	doWidth     bool
-	doErrors    bool
-	doPages     bool
-	logsFolder  string
-	doIdRoutine bool
-	logName     string
-	dateSuffix  string
-	logToFile   bool
-	logToScreen bool
+	doLogging    bool
+	doStart      bool
+	doEnd        bool
+	doSummary    bool
+	doPageAbyss  bool
+	doDepthAbyss bool
+	doDepth      bool
+	doWidth      bool
+	doErrors     bool
+	doPages      bool
+	logsFolder   string
+	doIdRoutine  bool
+	logName      string
+	dateSuffix   string
+	logToFile    bool
+	logToScreen  bool
 }
 
 func (lo *loggingOptions) setDefultLoggingOptions() {
@@ -33,7 +35,8 @@ func (lo *loggingOptions) setDefultLoggingOptions() {
 	lo.doStart = true
 	lo.doEnd = true
 	lo.doSummary = true
-	lo.doAbyss = false
+	lo.doPageAbyss = false
+	lo.doDepthAbyss = false
 	lo.doWidth = true
 	lo.doDepth = true
 	lo.doErrors = true
@@ -78,29 +81,50 @@ type config struct {
 	baseURL            *url.URL
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
-	maxPages           uint
+	maxPages           int32
 	maxDepth           uint
 	lo                 *loggingOptions
 	lf                 *os.File
 }
 
 func main() {
+	var err error
 	if len(os.Args) <= 1 {
 		fmt.Println("no website provided")
 		os.Exit(1)
 	}
 
-	if len(os.Args) != 2 {
+	maxGo := "0"
+	var maxGoInt int
+	if len(os.Args) > 2 {
+		maxGo = os.Args[2]
+	}
+	maxGoInt, err = strconv.Atoi(maxGo)
+	if err != nil {
+		fmt.Println("arg 2 must be a intiger")
+		return
+	}
+
+	maxPg := "0"
+	if len(os.Args) > 3 {
+		maxPg = os.Args[3]
+	}
+	num, err := strconv.Atoi(maxPg)
+	if err != nil {
+		fmt.Println("arg 3 must be a intiger")
+		return
+	}
+	maxPgInt32 := int32(num)
+
+	if len(os.Args) > 4 {
 		fmt.Println("too many arguments provided")
 		os.Exit(1)
 	}
-
 	baseUrlStr := os.Args[1]
 	cfg := config{}
 	cfg.mu = &sync.Mutex{}
 	cfg.pages = make(map[string]int)
 	cfg.wg = &sync.WaitGroup{}
-	var err error
 	cfg.baseURL, err = url.Parse(baseUrlStr)
 	if err != nil {
 		log.Fatalf("Base url parse error: %v", err) // is this correct?
@@ -111,12 +135,15 @@ func main() {
 	cfg.lo = &loggingOptions{}
 	cfg.lo.setDefultLoggingOptions()
 
-	cfg.lo.doSummary = false
+	cfg.lo.doSummary = true
 	cfg.lo.logToFile = false
 	cfg.lo.logToScreen = true
-	cfg.concurrencyControl = make(chan struct{}, 9)
-	cfg.maxDepth = 3
-	cfg.maxPages = 50
+	cfg.concurrencyControl = make(chan struct{}, maxGoInt)
+	cfg.maxDepth = 0
+	cfg.maxPages = maxPgInt32
+
+	cfg.lo.doDepthAbyss = false
+	cfg.lo.doPageAbyss = false
 
 	// John Crawler
 	cfg.crawlPage(baseUrlStr)

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"sync/atomic"
 )
 
 func resolveRelativeURLs() {}
@@ -18,8 +19,7 @@ func logError(message, rawCurrentURL string, err error) {
 
 func (cfg *config) crawlPage(rawCurrentURL string) {
 	var currentDepth uint // == 0 because go i awesome
-	//var pageCount int32
-	//pageCount += 1
+	var pageCount int32
 
 	if cfg.lo.logToFile {
 		cfg.lf = cfg.lo.getLogFile()
@@ -46,7 +46,7 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 
 	cfg.concurrencyControl <- struct{}{}
 	cfg.wg.Add(1)
-	go cfg.internalCrawlPage(rawCurrentURL, currentDepth)
+	go cfg.internalCrawlPage(rawCurrentURL, currentDepth, &pageCount)
 	cfg.wg.Wait()
 
 	if cfg.lo.doLogging && cfg.lo.doEnd {
@@ -74,9 +74,11 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 }
 
 // Todo: add resoleRelativeURLs here
-func (cfg *config) internalCrawlPage(rawCurrentURL string, currentDepth uint) {
+func (cfg *config) internalCrawlPage(rawCurrentURL string, currentDepth uint, pageCount *int32) {
 	defer cfg.wg.Done()
 	defer func() { <-cfg.concurrencyControl }()
+	atomic.AddInt32(pageCount, 1)
+
 	currentDepth += 1
 
 	// enforce same host for base and current URLs, Part 1
@@ -103,8 +105,16 @@ func (cfg *config) internalCrawlPage(rawCurrentURL string, currentDepth uint) {
 	cfg.pages[currentUrl]++
 	cfg.mu.Unlock()
 
+	atomInt := atomic.LoadInt32(pageCount)
+	if atomInt > cfg.maxPages && atomInt <= 0 {
+		if cfg.lo.doLogging && cfg.lo.doPageAbyss {
+			log.Printf("   aby-s: \"%s\"\n", rawCurrentURL)
+		}
+		return
+	}
+
 	if cfg.maxDepth > 0 && currentDepth > cfg.maxDepth {
-		if cfg.lo.doLogging && cfg.lo.doAbyss {
+		if cfg.lo.doLogging && cfg.lo.doDepthAbyss {
 			log.Printf("   abyss: \"%s\"\n", rawCurrentURL)
 		}
 		return
@@ -158,7 +168,7 @@ func (cfg *config) internalCrawlPage(rawCurrentURL string, currentDepth uint) {
 		if cfg.lo.doLogging && cfg.lo.doWidth {
 			log.Printf("   width  : \"%s\"", v)
 		}
-		go cfg.internalCrawlPage(v, currentDepth)
+		go cfg.internalCrawlPage(v, currentDepth, pageCount)
 	}
 	cfg.concurrencyControl <- struct{}{}
 }

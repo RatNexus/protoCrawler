@@ -18,9 +18,10 @@ func getHTML(rawURL string) (webpage string, err error) {
 	}
 
 	contentTypeString := resp.Header.Get("Content-Type")
-	contentTypes := strings.Split(contentTypeString, "; ")
+	contentTypes := strings.Split(contentTypeString, ";")
 	hasTextType := false
 	for _, t := range contentTypes {
+		t = strings.Trim(t, " ")
 		if t == "text/html" {
 			hasTextType = true
 			break
